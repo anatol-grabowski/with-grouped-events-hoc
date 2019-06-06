@@ -1,35 +1,49 @@
-import React from 'react'
+import React from 'react';
+import Debug from 'debug';
+
+const debug = Debug('with-grouped-events');
+const debugHandlersMap = Debug('handlers-map');
 
 class HandlersMap {
   constructor() {
-    this.map = null
-    this.handler = null
-    this.groupedHandler = null
+    this.map = null;
+    this.handler = null;
+    this.groupedHandler = this.groupedHandler.bind(this);
+  }
+
+  /**
+   * This is a function that a parent calls to get a cached handler for each el.
+   * It takes an element and returns an elHandler for it
+   * If parent handler is null - return a function that returns null,
+   * so that the Parent can call it without an error.
+   * If el is in the map - return the elHandler from the map.
+   * If el is not in the map - create new elHandler, add it to the map and return it.
+   */
+  groupedHandler(el) {
+    const { handler, map } = this;
+    if (!handler) return () => handler;
+    const elHandler = map.get(el);
+    if (elHandler) debugHandlersMap(`found "${handler && handler.name}" for`, el);
+    if (elHandler) return elHandler;
+    const createdElHandler = (...args) => {
+      debugHandlersMap('handler called', el, ...args)
+      handler(el, ...args)
+    };
+    map.set(el, createdElHandler);
+    debugHandlersMap(`added "${handler && handler.name}" for`, el);
+    return createdElHandler;
   }
 
   _reset(handler) {
-    this.map = new WeakMap()
-    this.handler = handler
+    this.map = new WeakMap();
+    this.handler = handler;
+    debugHandlersMap(`reset "${handler && handler.name}"`);
   }
 
-  _updateMap(elements) {
-    const { map, handler } = this.map
-    elements.forEach(el => {
-      const isInMap = map.has(el)
-      if (isInMap) return
-      map.set(el) = (...args) => handler(el, ...args)
-    })
-  }
-
-  update(handler, elements) {
-    const isHandlerChanged = handler !== this.handler
-    if (isHandlerChanged) this._reset(handler)
-    if (!handler) {
-      this.groupedHandler = () => handler
-      return
-    }
-    this.groupedHandler = el => this.map.get(el)
-    this._updateMap(elements)
+  update(handler) {
+    const isHandlerChanged = handler !== this.handler;
+    if (!isHandlerChanged) return;
+    this._reset(handler);
   }
 }
 
@@ -44,51 +58,48 @@ class HandlersMap {
  * ```
  *   const List = ({onItemEvent, items}) => (
  *     <div>
- *       {items.map(item => <Item key={item.id} onEvent{onItemEvent(item)} {...item} />)}
+ *       {items.map(item => <Item key={item.id} onEvent={onItemEvent(item)} {...item} />)}
  *     </div>
  *   )
- *   export default withGroupedEvents({ onItemEvent: 'items' })(Parent)
+ *   export default withGroupedEvents(['onItemEvent'])(List)
  * ```
  * Now `List` will emit `onItemEvent` with `item` in the first argument, then original `onEvent` arguments
  */
-const withGroupedEvents = (groupsMappings) => (Component) => {
-  // we use `{ handler: 'elements' }`  mappings and not `{ elements: [ 'handler' ] }`.
-  // That makes conflicting mappings,
-  // like `{ elements: ['handler'], 'items': ['handler', 'handler2'] }`, impossible
-  const handlersProps = Object.keys(groupsMappings)
-
+const withGroupedEvents = handlersProps => (Component) => {
   const createMaps = () => {
-    const maps = {}
-    handlersProps.forEach(handlerProp => {
-      maps[handlerProp] = new HandlersMap()
-    })
-    return maps
-  }
+    const maps = {};
+    handlersProps.forEach((handlerProp) => {
+      maps[handlerProp] = new HandlersMap();
+    });
+    return maps;
+  };
 
-  const updateMaps = (props, maps) => {
-    const groupedHandlers = {}
-    handlersProps.forEach(handlerProp => {
-      const handler = props[handlerProp]
-      const elementsProp = groupsMapping[handlerProp]
-      const elements = props[elementsProp]
-      maps[handlerProp].update(handler, elements)
-      groupedHandlers[handlerProp] = maps.groupedHandler
-    })
-    return groupedHandlers
-  }
+  const getGroupedHandlers = (props, maps) => {
+    const groupedHandlers = {};
+    handlersProps.forEach((handlerProp) => {
+      const handler = props[handlerProp];
+      const map = maps[handlerProp];
+      map.update(handler);
+      debug('updated', handlerProp, handler && handler.name);
+      groupedHandlers[handlerProp] = map.groupedHandler;
+    });
+    debug('getGroupedHandlers', groupedHandlers);
+    return groupedHandlers;
+  };
 
   class WithGroupedEvents extends React.Component {
     constructor(props) {
-      super(props)
-      this.maps = createMaps()
+      super(props);
+      this.maps = createMaps();
     }
 
     render() {
-      const groupedHandlers = updateMaps(props, maps)
-      return <Component {...props} {...groupedHandlers} />
+      const { props, maps } = this;
+      const groupedHandlers = getGroupedHandlers(props, maps);
+      return React.createElement(Component, {...props, ...groupedHandlers});
     }
   }
-  return WithGroupedEvents
-}
+  return WithGroupedEvents;
+};
 
-export default withGroupedEvents
+export default withGroupedEvents;

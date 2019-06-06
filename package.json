@@ -1,0 +1,26 @@
+{
+  "name": "with-grouped-events-hoc",
+  "version": "1.0.0",
+  "description": "Get child as the first argument in events emitted by children, chache children's event handlers (in WeakMaps) to avoid superfluous renders.",
+  "main": "withGroupedEvents.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grabantot/with-grouped-events-hoc.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/grabantot/with-grouped-events-hoc/issues"
+  },
+  "homepage": "https://github.com/grabantot/with-grouped-events-hoc#readme",
+  "dependencies": {
+    "debug": "^4.1.1",
+    "react": "^16.8.6"
+  }
+}

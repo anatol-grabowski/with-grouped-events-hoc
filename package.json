@@ -1,6 +1,6 @@
 {
   "name": "with-grouped-events-hoc",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Get child as the first argument in events emitted by children, chache children's event handlers (in WeakMaps) to avoid superfluous renders.",
   "main": "withGroupedEvents.js",
   "directories": {

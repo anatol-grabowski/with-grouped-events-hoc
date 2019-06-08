@@ -34,7 +34,7 @@ class Parent extends React.Component {
 
 One issue with this approach is that `onEvent` passed to each child is a new function on each parent's render (because it is defined in render) so it leads to unneeded DOM updates. This issue can be bypassed but it requires a lot of extra work.
 
-There is also another problem - scalability. Now imagine that now you need to write a component that renders a list of parents and passes `onParentsChildEvent` to each child that should be called with `parent, child, event` arguments. There is no way to do this without changing the `Parent` component. What if you need even deeper nesting? What if you don't have access to `Parent`'s source code?
+There is also another problem - scalability. Now imagine that now you need to write a component that renders a list of parents and passes `onParentsChildEvent` to each child that should be called with `parent, child, event` arguments. You'd have to pass a tricky function to `Parent` to avoid changing its code. What if you need even deeper nesting?
 
 ## How
 Handlers that need grouping are stored in weak maps so they are not recreated on each render but taken from the map instead.
